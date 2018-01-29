@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Data.SqlClient;
 using System.Threading.Tasks;
+using Demo.Domain;
 using Demo.Domain.Repositories;
 using Demo.Domain.Services;
 using Demo.DTO.RequestModels.Accounts;
+using IFramework.Exceptions;
 using IFramework.Infrastructure;
 using IFramework.UnitOfWork;
 
@@ -29,10 +32,25 @@ namespace Demo.Application.ApplicationServices
             return _lockProvider.LockAsync(request.UserName,
                                            async () =>
                                            {
-                                               var user = await _userDomainService.RegisterUserAsync(request.UserName,
-                                                                                                     request.Password)
-                                                                                  .ConfigureAwait(false);
-                                               await CommitAsync(user.GetInfo()).ConfigureAwait(false);
+                                               try
+                                               {
+                                                   var user = await _userDomainService.RegisterUserAsync(request.UserName,
+                                                                                                         request.Password)
+                                                                                      .ConfigureAwait(false);
+                                                   await CommitAsync(user.GetInfo()).ConfigureAwait(false);
+                                               }
+                                               catch (Exception e)
+                                               {
+                                                   if (e.GetBaseException() is SqlException sqlException)
+                                                   {
+                                                       // Cannot insert duplicate key row in object '%.*ls' with unique index '%.*ls'.
+                                                       if (sqlException.Number == 2601)
+                                                       {
+                                                           throw new DomainException(Error.UserNameAlreadyExists, new object[] {request.UserName});
+                                                       }
+                                                   }
+                                                   throw;
+                                               }
                                            },
                                            LockTimeOut);
         }
