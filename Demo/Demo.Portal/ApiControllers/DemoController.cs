@@ -27,8 +27,6 @@ namespace Demo.Portal.ApiControllers
             _appService = appService;
         }
 
- 
-
         [HttpPost]
         [AllowAnonymous]
         [Route("register")]
@@ -36,7 +34,6 @@ namespace Demo.Portal.ApiControllers
         {
             return ProcessAsync(() => _appService.RegisterUserAsync(request));
         }
-
 
         [HttpPost]
         [AllowAnonymous]
