@@ -1,26 +1,24 @@
-﻿using IFramework.Config;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Demo.Application.ApplicationServices;
+using Demo.Application.QueryServices;
 using Demo.Domain.Repositories;
 using Demo.Domain.Services;
 using Demo.DTO.RequestModels.Accounts;
 using Demo.Infrastructure;
 using Demo.Persistence;
-using IFramework.IoC;
-using Xunit;
-using IFramework.FoundatioLock.Config;
-using IFramework.UnitOfWork;
+using IFramework.Config;
 using IFramework.EntityFramework.Config;
+using IFramework.FoundatioLock.Config;
+using IFramework.IoC;
+using IFramework.UnitOfWork;
+using Xunit;
 
 namespace Demo.Tests
 {
     public class UserServiceTest
     {
-        public const string App = "Test";
         public UserServiceTest()
         {
             Configuration.Instance
@@ -35,6 +33,8 @@ namespace Demo.Tests
             RegisterTypes(container, Lifetime.Hierarchical);
         }
 
+        public const string App = "Test";
+
         private void RegisterTypes(IContainer container, Lifetime lifetime)
         {
             Configuration.Instance
@@ -46,30 +46,54 @@ namespace Demo.Tests
             container.RegisterType<IEncryptService, EncryptService>(lifetime);
         }
 
+        private IEnumerable<RegisterUserRequest> GetRegisterUsersRequest()
+        {
+            var ticks = DateTime.Now.Ticks;
+            var step = 0;
+            for (var i = 0; i < 1; i++)
+            {
+                yield return new RegisterUserRequest
+                {
+                    UserName = $"Test_{ticks}{step++}",
+                    Password = "111111"
+                };
+            }
+        }
+
+        [Fact]
+        public async Task TestLoginUserAsync()
+        {
+            using (var scope = IoCFactory.Instance.CurrentContainer.CreateChildContainer())
+            {
+                var userQueryService = scope.Resolve<UserQueryService>();
+                await userQueryService.ValidateUserLoginAsync("string", "BCC613D9C97CA9AA");
+            }
+        }
+
         [Fact]
         public async Task TestRegisterUserAsync()
         {
-            for (int i = 0; i < 1000; i++)
+            using (var scope = IoCFactory.Instance.CurrentContainer.CreateChildContainer())
+            {
+                var userAppService = scope.Resolve<UserAppService>();
+                await userAppService.RegisterUserAsync(new RegisterUserRequest
+                {
+                    UserName = $"Test_{DateTime.Now.Ticks}",
+                    Password = "111111"
+                });
+            }
+        }
+
+        [Fact]
+        public async Task TestRegisterUsersAsync()
+        {
+            for (var i = 0; i < 1; i++)
             {
                 using (var scope = IoCFactory.Instance.CurrentContainer.CreateChildContainer())
                 {
                     var userAppService = scope.Resolve<UserAppService>();
                     await userAppService.RegisterUsersAsync(GetRegisterUsersRequest());
-
                 }
-            }
-        }
-        private IEnumerable<RegisterUserRequest> GetRegisterUsersRequest()
-        {
-            long ticks = DateTime.Now.Ticks;
-            int Step = 0;
-            for (int i = 0; i < 10000; i++)
-            {
-                yield return new RegisterUserRequest
-                {
-                    UserName = $"Test_{ticks}{Step++}",
-                    Password = "111111"
-                };
             }
         }
     }

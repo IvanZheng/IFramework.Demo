@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
+using Demo.DTO.Enums;
 using IFramework.Specifications;
 
 namespace Demo.Domain.Models.Accounts
@@ -30,7 +31,7 @@ namespace Demo.Domain.Models.Accounts
         {
             if (string.IsNullOrWhiteSpace(AccountId))
             {
-                return a => a.UserName == UserName && a.Password == Password;
+                return a => a.AccountType == AccountType.Internal && a.UserName == UserName && a.Password == Password;
             }
             else
             {
