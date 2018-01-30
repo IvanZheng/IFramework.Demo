@@ -1,10 +1,12 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Demo.Application.Adapters;
 using Demo.Domain;
 using Demo.Domain.Models.Accounts;
 using Demo.Domain.Models.Users;
 using Demo.Domain.Repositories;
+using Demo.Domain.Services;
 using Demo.DTO.Enums;
 using IFramework.EntityFramework.Repositories;
 using IFramework.Exceptions;
@@ -14,11 +16,22 @@ namespace Demo.Application.QueryServices
 {
     public class UserQueryService : QueryServiceBase
     {
-        public UserQueryService(IDemoRepository repository)
-            : base(repository) { }
+        private readonly IEncryptService _encryptService;
+
+        public UserQueryService(IDemoRepository repository,
+                                IEncryptService encryptService)
+            : base(repository)
+        {
+            _encryptService = encryptService;
+        }
 
         public Task<VM.ApplicationUser> FindUserByInternalAccountAsync(string userName, string password)
         {
+            if (string.IsNullOrWhiteSpace(password))
+            {
+                throw new ArgumentException("Value cannot be null or whitespace.", nameof(password));
+            }
+            password = _encryptService.EncryptPassword(password);
             return FindUserByInternalAccountAsync(new AccountSpec(userName, password));
         }
 
@@ -40,6 +53,10 @@ namespace Demo.Application.QueryServices
 
         public async Task<VM.ApplicationUser> ValidateUserLoginAsync(string userName, string password)
         {
+            if (string.IsNullOrWhiteSpace(password))
+            {
+                throw new ArgumentException("Value cannot be null or whitespace.", nameof(password));
+            }
             var user = await FindUserByInternalAccountAsync(userName, password).ConfigureAwait(false);
             if (user == null)
             {

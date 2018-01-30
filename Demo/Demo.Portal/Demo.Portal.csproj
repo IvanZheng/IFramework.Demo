@@ -356,6 +356,10 @@
       <Project>{DF9A8EE1-3151-42F5-8CF0-8BBF3AD73219}</Project>
       <Name>Demo.Domain</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Demo.Infrastructure\Demo.Infrastructure.csproj">
+      <Project>{9735F6AC-B083-48C0-9F20-291CB5C42870}</Project>
+      <Name>Demo.Infrastructure</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Demo.Persistence\Demo.Persistence.csproj">
       <Project>{D21D69C5-B470-473F-8564-6D0A42E4E59D}</Project>
       <Name>Demo.Persistence</Name>

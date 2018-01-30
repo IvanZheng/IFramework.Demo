@@ -1,5 +1,7 @@
 using System;
 using Demo.Domain.Repositories;
+using Demo.Domain.Services;
+using Demo.Infrastructure;
 using Demo.Persistence;
 using IFramework.Config;
 using IFramework.EntityFramework.Config;
@@ -69,6 +71,7 @@ namespace Demo.Portal.App_Start
             container.RegisterType<DemoDbContext, DemoDbContext>(lifetime);
             container.RegisterType<IDemoRepository, DemoRepository>(lifetime);
             container.RegisterType<IAppUnitOfWork, AppUnitOfWork>(lifetime);
+            container.RegisterType<IEncryptService, EncryptService>(lifetime);
         }
     }
 }
