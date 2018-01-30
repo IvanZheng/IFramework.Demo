@@ -38,7 +38,11 @@ namespace Demo.Persistence
         }
 
         public DemoDbContext()
-            : base("DemoDb") { }
+            : base("DemoDb")
+        {
+            Configuration.AutoDetectChangesEnabled = false;
+            Configuration.ValidateOnSaveEnabled = false;
+        }
 
         public UserInfo CurrentUser { get; protected set; }
 

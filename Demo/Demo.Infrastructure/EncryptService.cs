@@ -12,7 +12,7 @@ namespace Demo.Infrastructure
     {
         public string EncryptPassword(string password, string encryptKey = null)
         {
-            return Utility.MD5Encrypt(password);
+            return password;//Utility.MD5Encrypt(password);
         }
     }
 }

@@ -36,6 +36,11 @@ namespace Demo.Domain.Services
             {
                 throw new DomainException(Error.UserNameAlreadyExists, new object[] {userName});
             }
+            return RegisterUser(userName, password);
+        }
+
+        public User RegisterUser(string userName, string password)
+        {
             var user = new User(userName);
             password = _encryptService.EncryptPassword(password);
             var account = user.CreateAccount(password);

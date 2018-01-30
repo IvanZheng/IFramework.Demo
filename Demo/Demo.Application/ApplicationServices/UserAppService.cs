@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Threading.Tasks;
 using Demo.Domain;
@@ -46,13 +47,39 @@ namespace Demo.Application.ApplicationServices
                                                        // Cannot insert duplicate key row in object '%.*ls' with unique index '%.*ls'.
                                                        if (sqlException.Number == 2601)
                                                        {
-                                                           throw new DomainException(Error.UserNameAlreadyExists, new object[] {request.UserName});
+                                                           throw new DomainException(Error.UserNameAlreadyExists,
+                                                                                     new object[] {request.UserName});
                                                        }
                                                    }
                                                    throw;
                                                }
                                            },
                                            LockTimeOut);
+        }
+
+        public async Task RegisterUsersAsync(IEnumerable<RegisterUserRequest> requests)
+        {
+            foreach (var request in requests)
+            {
+                try
+                {
+                    _userDomainService.RegisterUser(request.UserName, request.Password);
+                }
+                catch (Exception e)
+                {
+                    if (e.GetBaseException() is SqlException sqlException)
+                    {
+                        // Cannot insert duplicate key row in object '%.*ls' with unique index '%.*ls'.
+                        if (sqlException.Number == 2601)
+                        {
+                            throw new DomainException(Error.UserNameAlreadyExists,
+                                                      new object[] {request.UserName});
+                        }
+                    }
+                    throw;
+                }
+            }
+            await CommitAsync().ConfigureAwait(false);
         }
     }
 }
