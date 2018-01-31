@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Demo.Application.ApplicationServices;
@@ -78,16 +79,25 @@ namespace Demo.Tests
             }
         }
 
-        private async Task RegisterUserByHttpClientAsync(int step)
+        private async Task RegisterUserByHttpClientAsync(int step, ConcurrentBag<int> failedList)
         {
-            using (var client = new TestsClient(new Uri("http://localhost:54395/")))
+            try
             {
-                await client.DemoOperations.RegisterUserAsync(new Models.RegisterUserRequest
+                using (var client = new TestsClient(new Uri("http://localhost:54395/")))
                 {
-                    UserName = $"Test{DateTime.Now.Ticks}{step}",
-                    Password = "111111"
-                });
+                    client.HttpClient.Timeout = TimeSpan.FromSeconds(300);
+                    await client.DemoOperations.RegisterUserAsync(new Models.RegisterUserRequest
+                    {
+                        UserName = $"Test{DateTime.Now.Ticks}{step}",
+                        Password = "111111"
+                    });
+                }
             }
+            catch (Exception)
+            {
+                failedList.Add(step);
+            }
+           
         }
 
         private async Task LoginUserAsync(string userName, string password)
@@ -134,13 +144,17 @@ namespace Demo.Tests
             return CodeTimer.TimeAsync(nameof(ConcurrenceRegisterTestByHttpClient), 1, async () =>
             {
                 var step = 0;
+                var total = 10000;
                 var tasks = new List<Task>();
-                for (var i = 0; i < 10000; i++)
+                var failedList = new ConcurrentBag<int>();
+                for (var i = 0; i < total; i++)
                 {
-                    tasks.Add(RegisterUserByHttpClientAsync(step++));
+                    tasks.Add(RegisterUserByHttpClientAsync(step++, failedList));
                 }
                 await Task.WhenAll(tasks);
+                _output.WriteLine($"{failedList.Count} failed in {total}");
             });
+
         }
 
         [Fact]
