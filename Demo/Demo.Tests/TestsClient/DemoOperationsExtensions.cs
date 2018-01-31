@@ -20,6 +20,28 @@ namespace Demo.Tests
             /// <param name='operations'>
             /// The operations group for this extension method.
             /// </param>
+            public static ApiResult Timeout(this IDemoOperations operations)
+            {
+                return Task.Factory.StartNew(s => ((IDemoOperations)s).TimeoutAsync(), operations, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default).Unwrap().GetAwaiter().GetResult();
+            }
+
+            /// <param name='operations'>
+            /// The operations group for this extension method.
+            /// </param>
+            /// <param name='cancellationToken'>
+            /// The cancellation token.
+            /// </param>
+            public static async Task<ApiResult> TimeoutAsync(this IDemoOperations operations, CancellationToken cancellationToken = default(CancellationToken))
+            {
+                using (var _result = await operations.TimeoutWithHttpMessagesAsync(null, cancellationToken).ConfigureAwait(false))
+                {
+                    return _result.Body;
+                }
+            }
+
+            /// <param name='operations'>
+            /// The operations group for this extension method.
+            /// </param>
             /// <param name='request'>
             /// </param>
             public static ApiResult RegisterUser(this IDemoOperations operations, RegisterUserRequest request)

@@ -1,4 +1,5 @@
-﻿using System.Net.Http;
+﻿using System;
+using System.Net.Http;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using System.Web.Http;
@@ -25,6 +26,14 @@ namespace Demo.Portal.ApiControllers
             : base(userManager)
         {
             _appService = appService;
+        }
+
+
+        [AllowAnonymous]
+        [Route("timeout")]
+        public Task<ApiResult> Timeout()
+        {
+            return ProcessAsync(() => Task.Delay(TimeSpan.FromSeconds(1)));
         }
 
         [HttpPost]

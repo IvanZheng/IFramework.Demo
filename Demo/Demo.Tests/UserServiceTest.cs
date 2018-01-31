@@ -82,7 +82,7 @@ namespace Demo.Tests
         {
             using (var client = new TestsClient(new Uri("http://localhost:54395/")))
             {
-                await client.DemoOperations.RegisterUserAsync(new Demo.Tests.Models.RegisterUserRequest
+                await client.DemoOperations.RegisterUserAsync(new Models.RegisterUserRequest
                 {
                     UserName = $"Test{DateTime.Now.Ticks}{step}",
                     Password = "111111"
@@ -129,20 +129,18 @@ namespace Demo.Tests
         }
 
         [Fact]
-        public Task TestLoginUserAsync()
+        public Task ConcurrenceRegisterTestByHttpClient()
         {
-            return CodeTimer.TimeAsync(nameof(TestLoginUserAsync),
-                                       10000,
-                                       () => LoginUserAsync("string", "string"));
-        }
-
-        [Fact]
-        public Task TestRegisterUserAsync()
-        {
-            var step = 0;
-            return CodeTimer.TimeAsync(nameof(TestRegisterUserAsync),
-                                       10000,
-                                       () => RegisterUserAsync(step++));
+            return CodeTimer.TimeAsync(nameof(ConcurrenceRegisterTestByHttpClient), 1, async () =>
+            {
+                var step = 0;
+                var tasks = new List<Task>();
+                for (var i = 0; i < 10000; i++)
+                {
+                    tasks.Add(RegisterUserByHttpClientAsync(step++));
+                }
+                await Task.WhenAll(tasks);
+            });
         }
 
         [Fact]
@@ -162,19 +160,20 @@ namespace Demo.Tests
         }
 
         [Fact]
-        public Task ConcurrenceRegisterTestByHttpClient()
+        public Task TestLoginUserAsync()
         {
-            return CodeTimer.TimeAsync(nameof(ConcurrenceRegisterTestByHttpClient), 1, async () =>
-            {
-                var step = 0;
-                var tasks = new List<Task>();
-                for (var i = 0; i < 5000; i++)
-                {
-                    tasks.Add(RegisterUserByHttpClientAsync(step++));
-                }
-                await Task.WhenAll(tasks);
-            });
+            return CodeTimer.TimeAsync(nameof(TestLoginUserAsync),
+                                       10000,
+                                       () => LoginUserAsync("string", "string"));
         }
 
+        [Fact]
+        public Task TestRegisterUserAsync()
+        {
+            var step = 0;
+            return CodeTimer.TimeAsync(nameof(TestRegisterUserAsync),
+                                       10000,
+                                       () => RegisterUserAsync(step++));
+        }
     }
 }

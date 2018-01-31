@@ -17,6 +17,13 @@ namespace Demo.Tests
     /// </summary>
     public partial interface IDemoOperations
     {
+        /// <param name='customHeaders'>
+        /// The headers that will be added to request.
+        /// </param>
+        /// <param name='cancellationToken'>
+        /// The cancellation token.
+        /// </param>
+        Task<HttpOperationResponse<ApiResult>> TimeoutWithHttpMessagesAsync(Dictionary<string, List<string>> customHeaders = null, CancellationToken cancellationToken = default(CancellationToken));
         /// <param name='request'>
         /// </param>
         /// <param name='customHeaders'>
