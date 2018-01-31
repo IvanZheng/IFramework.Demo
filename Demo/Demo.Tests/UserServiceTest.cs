@@ -1,5 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Entity;
+using System.Data.Entity.Spatial;
+using System.Data.Entity.SqlServer;
+using System.Linq;
 using System.Threading.Tasks;
 using Demo.Application.ApplicationServices;
 using Demo.Application.QueryServices;
@@ -11,6 +15,7 @@ using Demo.Persistence;
 using IFramework.Config;
 using IFramework.EntityFramework.Config;
 using IFramework.FoundatioLock.Config;
+using IFramework.Infrastructure;
 using IFramework.IoC;
 using IFramework.UnitOfWork;
 using Xunit;
@@ -29,6 +34,10 @@ namespace Demo.Tests
                          .UseLog4Net(App)
                          .UseJsonNet()
                          .UseFoundatioLockInMemory();
+
+            SqlProviderServices.SqlServerTypesAssemblyName =
+                "Microsoft.SqlServer.Types, Version=14.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91";
+            SqlServerTypes.Utilities.LoadNativeAssemblies(AppDomain.CurrentDomain.BaseDirectory);
 
             var container = IoCFactory.Instance.CurrentContainer;
             RegisterTypes(container, Lifetime.Hierarchical);
@@ -148,5 +157,22 @@ namespace Demo.Tests
                 }
             });
         }
+
+        [Fact]
+        public async Task TestDbGeographySearch()
+        {
+            var point = DbGeography.FromText($"POINT(121.390999 31.266042)", 4326);
+
+            using (var dbContext = new DemoDbContext())
+            {
+                var query = from u in dbContext.Users
+                            select new {u, distance = u.Location.Distance(point)};
+                var users = await query.OrderBy(u => u.distance)
+                                       .ToListAsync()
+                                 .ConfigureAwait(false);
+                Assert.True(users.Count > 0);
+            }
+        }
+
     }
 }

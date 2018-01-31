@@ -32,10 +32,10 @@ namespace Demo.Persistence
 
     public class DemoDbContext : MSDbContext, ISetUserable
     {
-        static DemoDbContext()
-        {
-            Database.SetInitializer(new DemoDropCreateDatabaseIfModelChanges());
-        }
+        //static DemoDbContext()
+        //{
+        //    Database.SetInitializer(new DemoDropCreateDatabaseIfModelChanges());
+        //}
 
         public DemoDbContext()
             : base("DemoDb")

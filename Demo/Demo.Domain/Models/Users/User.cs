@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Data.Entity.Spatial;
 using Demo.Domain.Models.Accounts;
 using Demo.DTO.Enums;
 using IFramework.Exceptions;
@@ -28,6 +29,7 @@ namespace Demo.Domain.Models.Users
             Province = province;
             City = city;
             HeaderImage = headerImage;
+            Location  = DbGeography.FromText($"POINT(121.407923 31.268557)", 4326);
         }
 
         public string Id { get; protected set; }
@@ -55,6 +57,7 @@ namespace Demo.Domain.Models.Users
         public string RealName { get; protected set; }
         public string Contact { get; protected set; }
         public bool Enabled => Status == CommonStatus.Normal;
+        public DbGeography Location { get; protected set; }
 
         public Account CreateAccount(string password)
         {
@@ -66,7 +69,7 @@ namespace Demo.Domain.Models.Users
             return new UserInfo(Id, Name);
         }
 
-        public void Update(string name, string country, string province, string city, string gender, string headImage)
+        public void Update(string name, string country, string province, string city, string gender, string headImage, double latitude, double longitude)
         {
             Gender = gender;
             Country = country;
@@ -75,6 +78,8 @@ namespace Demo.Domain.Models.Users
             City = city;
             HeaderImage = headImage;
             Status = CommonStatus.Normal;
+            Location = DbGeography.FromText($"POINT({longitude} {latitude})", 4326);
+
         }
 
         public void Complete(string realName, string contact)

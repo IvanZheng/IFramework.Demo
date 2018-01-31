@@ -1,4 +1,5 @@
 using System;
+using System.Data.Entity.SqlServer;
 using Demo.Domain.Repositories;
 using Demo.Domain.Services;
 using Demo.Infrastructure;
@@ -6,6 +7,7 @@ using Demo.Persistence;
 using IFramework.Config;
 using IFramework.EntityFramework.Config;
 using IFramework.FoundatioLock.Config;
+using IFramework.Infrastructure;
 using IFramework.IoC;
 using IFramework.UnitOfWork;
 
@@ -26,7 +28,11 @@ namespace Demo.Portal.App_Start
                          .UseLog4Net(App)
                          .UseJsonNet()
                          .UseFoundatioLockInMemory();
-            
+
+            SqlProviderServices.SqlServerTypesAssemblyName =
+                "Microsoft.SqlServer.Types, Version=14.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91";
+            SqlServerTypes.Utilities.LoadNativeAssemblies(Utility.MapPath("~/bin"));
+
             var container = IoCFactory.Instance.CurrentContainer;
             RegisterTypes(container, Lifetime.Hierarchical);
             return container;
