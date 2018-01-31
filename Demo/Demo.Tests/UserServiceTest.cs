@@ -14,12 +14,13 @@ using IFramework.FoundatioLock.Config;
 using IFramework.IoC;
 using IFramework.UnitOfWork;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Demo.Tests
 {
     public class UserServiceTest
     {
-        public UserServiceTest()
+        public UserServiceTest(ITestOutputHelper output)
         {
             Configuration.Instance
                          .UseAutofacContainer()
@@ -31,7 +32,11 @@ namespace Demo.Tests
 
             var container = IoCFactory.Instance.CurrentContainer;
             RegisterTypes(container, Lifetime.Hierarchical);
+            _output = output;
+            CodeTimer.Initialize(output);
         }
+
+        private readonly ITestOutputHelper _output;
 
         public const string App = "Test";
 
@@ -50,7 +55,7 @@ namespace Demo.Tests
         {
             var ticks = DateTime.Now.Ticks;
             var step = 0;
-            for (var i = 0; i < 1; i++)
+            for (var i = 0; i < 10; i++)
             {
                 yield return new RegisterUserRequest
                 {
@@ -60,41 +65,88 @@ namespace Demo.Tests
             }
         }
 
-        [Fact]
-        public async Task TestLoginUserAsync()
-        {
-            using (var scope = IoCFactory.Instance.CurrentContainer.CreateChildContainer())
-            {
-                var userQueryService = scope.Resolve<UserQueryService>();
-                await userQueryService.ValidateUserLoginAsync("string", "BCC613D9C97CA9AA");
-            }
-        }
-
-        [Fact]
-        public async Task TestRegisterUserAsync()
+        private async Task RegisterUserAsync(int step)
         {
             using (var scope = IoCFactory.Instance.CurrentContainer.CreateChildContainer())
             {
                 var userAppService = scope.Resolve<UserAppService>();
                 await userAppService.RegisterUserAsync(new RegisterUserRequest
                 {
-                    UserName = $"Test_{DateTime.Now.Ticks}",
+                    UserName = $"Test_{DateTime.Now.Ticks}{step}",
                     Password = "111111"
                 });
             }
         }
 
-        [Fact]
-        public async Task TestRegisterUsersAsync()
+        private async Task LoginUserAsync(string userName, string password)
         {
-            for (var i = 0; i < 1; i++)
+            using (var scope = IoCFactory.Instance.CurrentContainer.CreateChildContainer())
             {
-                using (var scope = IoCFactory.Instance.CurrentContainer.CreateChildContainer())
-                {
-                    var userAppService = scope.Resolve<UserAppService>();
-                    await userAppService.RegisterUsersAsync(GetRegisterUsersRequest());
-                }
+                var userQueryService = scope.Resolve<UserQueryService>();
+                await userQueryService.ValidateUserLoginAsync(userName, password);
             }
+        }
+
+        [Fact]
+        public Task ConcurrenceLoginTest()
+        {
+            return CodeTimer.TimeAsync(nameof(ConcurrenceLoginTest), 1, async () =>
+            {
+                var tasks = new List<Task>();
+                for (var i = 0; i < 10000; i++)
+                {
+                    tasks.Add(LoginUserAsync("string", "string"));
+                }
+                await Task.WhenAll(tasks);
+            });
+        }
+
+        [Fact]
+        public Task ConcurrenceRegisterTest()
+        {
+            return CodeTimer.TimeAsync(nameof(ConcurrenceRegisterTest), 1, async () =>
+            {
+                var step = 0;
+                var tasks = new List<Task>();
+                for (var i = 0; i < 10000; i++)
+                {
+                    tasks.Add(RegisterUserAsync(step++));
+                }
+                await Task.WhenAll(tasks);
+            });
+        }
+
+        [Fact]
+        public Task TestLoginUserAsync()
+        {
+            return CodeTimer.TimeAsync(nameof(TestLoginUserAsync),
+                                       10000,
+                                       () => LoginUserAsync("string", "string"));
+        }
+
+        [Fact]
+        public Task TestRegisterUserAsync()
+        {
+            var step = 0;
+            return CodeTimer.TimeAsync(nameof(TestRegisterUserAsync),
+                                       10000,
+                                       () => RegisterUserAsync(step++));
+        }
+
+        [Fact]
+        public Task TestBatchRegisterUsersAsync()
+        {
+            return CodeTimer.TimeAsync(nameof(TestBatchRegisterUsersAsync), 1, async () =>
+            {
+                for (var i = 0; i < 10; i++)
+                {
+                    using (var scope = IoCFactory.Instance.CurrentContainer.CreateChildContainer())
+                    {
+                        var userAppService = scope.Resolve<UserAppService>();
+                        await userAppService.RegisterUsersAsync(GetRegisterUsersRequest());
+                    }
+                }
+            });
         }
     }
 }

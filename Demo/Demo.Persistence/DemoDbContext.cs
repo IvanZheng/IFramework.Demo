@@ -40,7 +40,7 @@ namespace Demo.Persistence
         public DemoDbContext()
             : base("DemoDb")
         {
-            Configuration.AutoDetectChangesEnabled = false;
+            //Configuration.AutoDetectChangesEnabled = false;
             Configuration.ValidateOnSaveEnabled = false;
         }
 
