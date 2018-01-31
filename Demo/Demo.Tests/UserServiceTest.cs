@@ -59,7 +59,7 @@ namespace Demo.Tests
             {
                 yield return new RegisterUserRequest
                 {
-                    UserName = $"Test_{ticks}{step++}",
+                    UserName = $"Test{ticks}{step++}",
                     Password = "111111"
                 };
             }
@@ -72,7 +72,19 @@ namespace Demo.Tests
                 var userAppService = scope.Resolve<UserAppService>();
                 await userAppService.RegisterUserAsync(new RegisterUserRequest
                 {
-                    UserName = $"Test_{DateTime.Now.Ticks}{step}",
+                    UserName = $"Test{DateTime.Now.Ticks}{step}",
+                    Password = "111111"
+                });
+            }
+        }
+
+        private async Task RegisterUserByHttpClientAsync(int step)
+        {
+            using (var client = new TestsClient(new Uri("http://localhost:54395/")))
+            {
+                await client.DemoOperations.RegisterUserAsync(new Demo.Tests.Models.RegisterUserRequest
+                {
+                    UserName = $"Test{DateTime.Now.Ticks}{step}",
                     Password = "111111"
                 });
             }
@@ -148,5 +160,21 @@ namespace Demo.Tests
                 }
             });
         }
+
+        [Fact]
+        public Task ConcurrenceRegisterTestByHttpClient()
+        {
+            return CodeTimer.TimeAsync(nameof(ConcurrenceRegisterTestByHttpClient), 1, async () =>
+            {
+                var step = 0;
+                var tasks = new List<Task>();
+                for (var i = 0; i < 5000; i++)
+                {
+                    tasks.Add(RegisterUserByHttpClientAsync(step++));
+                }
+                await Task.WhenAll(tasks);
+            });
+        }
+
     }
 }
