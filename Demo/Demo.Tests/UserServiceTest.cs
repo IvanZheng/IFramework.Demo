@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Data.Entity;
+using System.Linq;
 using System.Threading.Tasks;
 using Demo.Application.ApplicationServices;
 using Demo.Application.QueryServices;
+using Demo.Domain.Models.Accounts;
 using Demo.Domain.Repositories;
 using Demo.Domain.Services;
 using Demo.DTO.RequestModels.Accounts;
@@ -16,6 +19,7 @@ using IFramework.IoC;
 using IFramework.UnitOfWork;
 using Xunit;
 using Xunit.Abstractions;
+using LoginRequest = Demo.Tests.Models.LoginRequest;
 
 namespace Demo.Tests
 {
@@ -97,7 +101,6 @@ namespace Demo.Tests
             {
                 failedList.Add(step);
             }
-           
         }
 
         private async Task LoginUserAsync(string userName, string password)
@@ -155,6 +158,56 @@ namespace Demo.Tests
                 _output.WriteLine($"{failedList.Count} failed in {total}");
             });
 
+        }
+
+
+        [Fact]
+        public async Task ConcurrenceLoginTestByHttpClient()
+        {
+            LoginRequest[] loginRequests;
+            var total = 10000;
+            // get users info
+            using (var scope = IoCFactory.Instance.CurrentContainer.CreateChildContainer())
+            {
+                var repository = scope.Resolve<IDemoRepository>();
+                loginRequests = await repository.FindAll<Account>()
+                                        .OrderBy(a => a.Id)
+                                        .Take(total)
+                                        .Select(a => new Models.LoginRequest{
+                                            UserName = a.UserName,
+                                            Password = a.Password})
+                                        .ToArrayAsync()
+                                        .ConfigureAwait(false);
+            }
+
+            await CodeTimer.TimeAsync(nameof(ConcurrenceLoginTestByHttpClient), 1, async () =>
+            {
+                var tasks = new List<Task>();
+                var failedList = new ConcurrentBag<int>();
+                for (var i = 0; i < loginRequests.Length; i++)
+                {
+                    tasks.Add(LoginUserByHttpClientAsync(loginRequests[i], i, failedList));
+                }
+                await Task.WhenAll(tasks);
+                _output.WriteLine($"{failedList.Count} failed in {total}");
+            });
+
+        }
+
+        private async Task LoginUserByHttpClientAsync(Models.LoginRequest loginRequest, int step, ConcurrentBag<int> failedList)
+        {
+            try
+            {
+                using (var client = new TestsClient(new Uri("http://localhost:54395/")))
+                {
+                    client.HttpClient.Timeout = TimeSpan.FromSeconds(300);
+                    await client.DemoOperations.LoginAsync(loginRequest);
+                }
+            }
+            catch (Exception)
+            {
+                failedList.Add(step);
+            }
         }
 
         [Fact]
