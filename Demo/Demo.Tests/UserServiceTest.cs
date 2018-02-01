@@ -90,11 +90,15 @@ namespace Demo.Tests
                 using (var client = new TestsClient(new Uri("http://localhost:54395/")))
                 {
                     client.HttpClient.Timeout = TimeSpan.FromSeconds(300);
-                    await client.DemoOperations.RegisterUserAsync(new Models.RegisterUserRequest
+                    var result = await client.DemoOperations.RegisterUserAsync(new Models.RegisterUserRequest
                     {
                         UserName = $"Test{DateTime.Now.Ticks}{step}",
                         Password = "111111"
                     });
+                    if (!result?.Success ?? false)
+                    {
+                        failedList.Add(step);
+                    }
                 }
             }
             catch (Exception)
@@ -201,7 +205,11 @@ namespace Demo.Tests
                 using (var client = new TestsClient(new Uri("http://localhost:54395/")))
                 {
                     client.HttpClient.Timeout = TimeSpan.FromSeconds(300);
-                    await client.DemoOperations.LoginAsync(loginRequest);
+                    var result = await client.DemoOperations.LoginAsync(loginRequest);
+                    if (!result?.Success ?? false)
+                    {
+                        failedList.Add(step);
+                    }
                 }
             }
             catch (Exception)
