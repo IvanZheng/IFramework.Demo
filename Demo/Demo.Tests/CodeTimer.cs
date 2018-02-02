@@ -16,8 +16,8 @@ namespace Demo.Tests
         public static void Initialize(ITestOutputHelper output)
         {
             _outPUt = output;
-            //Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High;
-            //Thread.CurrentThread.Priority = ThreadPriority.Highest;
+            Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High;
+            Thread.CurrentThread.Priority = ThreadPriority.Highest;
             Time("", 1, () => { });
         }
 

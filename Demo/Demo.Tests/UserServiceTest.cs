@@ -56,7 +56,7 @@ namespace Demo.Tests
             container.RegisterType<IEncryptService, EncryptService>(lifetime);
         }
 
-        private IEnumerable<RegisterUserRequest> GetRegisterUsersRequests(int count)
+        private IEnumerable<RegisterUserRequest> GetRegisterUserRequests(int count)
         {
             var ticks = DateTime.Now.Ticks;
             var step = 0;
@@ -112,6 +112,11 @@ namespace Demo.Tests
             }
         }
 
+        private Task LoginUserAsync(LoginRequest request)
+        {
+            return LoginUserAsync(request.UserName, request.Password);
+        }
+
         private async Task LoginUserAsync(string userName, string password)
         {
             using (var scope = IoCFactory.Instance.CurrentContainer.CreateChildContainer())
@@ -121,27 +126,122 @@ namespace Demo.Tests
             }
         }
 
-        [Fact]
-        public Task ConcurrenceLoginTest()
+        private async Task<LoginRequest[]> GetLoginUserRequests(int total)
         {
-            return CodeTimer.TimeAsync(nameof(ConcurrenceLoginTest), 1, async () =>
+            // get users info
+            using (var scope = IoCFactory.Instance.CurrentContainer.CreateChildContainer())
             {
-                var tasks = new List<Task>();
-                for (var i = 0; i < 20000; i++)
+                var repository = scope.Resolve<IDemoRepository>();
+                return await repository.FindAll<Account>()
+                                       .OrderBy(a => a.Id)
+                                       .Take(total)
+                                       .Select(a => new LoginRequest
+                                       {
+                                           UserName = a.UserName,
+                                           Password = a.Password
+                                       })
+                                       .ToArrayAsync()
+                                       .ConfigureAwait(false);
+            }
+        }
+
+        private async Task LoginUserByHttpClientAsync(LoginRequest loginRequest, int step, ConcurrentBag<int> failedList)
+        {
+            try
+            {
+                using (var client = new TestsClient(new Uri("http://localhost:54395/")))
                 {
-                    tasks.Add(LoginUserAsync("string", "string"));
+                    client.HttpClient.Timeout = TimeSpan.FromSeconds(300);
+                    var result = await client.DemoOperations.LoginAsync(loginRequest);
+                    if (!result?.Success ?? false)
+                    {
+                        failedList.Add(step);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                failedList.Add(step);
+            }
+        }
+
+        [Fact]
+        public async Task ConcurrenceLoginTest()
+        {
+            var loginRequests = await GetLoginUserRequests(40000).ConfigureAwait(false);
+            var tasks = new List<Task>();
+            var taskQueue = new ConcurrentQueue<Task>();
+            foreach (var request in loginRequests)
+            {
+                var task = new Task(async () =>
+                {
+                    await LoginUserAsync(request).ConfigureAwait(false);
+                    if (taskQueue.TryDequeue(out var next))
+                    {
+                        next.Start();
+                    }
+                });
+                tasks.Add(task);
+                taskQueue.Enqueue(task);
+            }
+            // 预热
+            await LoginUserAsync("string", "string").ConfigureAwait(false);
+            await CodeTimer.TimeAsync(nameof(ConcurrenceLoginTest), 1, async () =>
+            {
+                // Start 100 tasks
+                for (var i = 0; i < 10; i++)
+                {
+                    if (taskQueue.TryDequeue(out var task))
+                    {
+                        task.Start();
+                    }
                 }
                 await Task.WhenAll(tasks);
             });
         }
 
+
         [Fact]
-        public Task ConcurrenceRegisterTest()
+        public async Task ConcurrenceLoginTestByHttpClient()
         {
-            var registerUserRequets = GetRegisterUsersRequests(40000).ToArray();
+            LoginRequest[] loginRequests;
+            var total = 10000;
+            // get users info
+            using (var scope = IoCFactory.Instance.CurrentContainer.CreateChildContainer())
+            {
+                var repository = scope.Resolve<IDemoRepository>();
+                loginRequests = await repository.FindAll<Account>()
+                                                .OrderBy(a => a.Id)
+                                                .Take(total)
+                                                .Select(a => new LoginRequest
+                                                {
+                                                    UserName = a.UserName,
+                                                    Password = a.Password
+                                                })
+                                                .ToArrayAsync()
+                                                .ConfigureAwait(false);
+            }
+
+            await CodeTimer.TimeAsync(nameof(ConcurrenceLoginTestByHttpClient), 1, async () =>
+            {
+                var tasks = new List<Task>();
+                var failedList = new ConcurrentBag<int>();
+                for (var i = 0; i < loginRequests.Length; i++)
+                {
+                    tasks.Add(LoginUserByHttpClientAsync(loginRequests[i], i, failedList));
+                }
+                await Task.WhenAll(tasks);
+                _output.WriteLine($"{failedList.Count} failed in {total}");
+            });
+        }
+
+        [Fact]
+        public async Task ConcurrenceRegisterTest()
+        {
+            var registerUserRequets = GetRegisterUserRequests(40000).ToArray();
             var tasks = new List<Task>();
             var taskQueue = new ConcurrentQueue<Task>();
-            foreach (RegisterUserRequest request in registerUserRequets)
+            foreach (var request in registerUserRequets)
             {
                 var task = new Task(async () =>
                 {
@@ -154,11 +254,12 @@ namespace Demo.Tests
                 tasks.Add(task);
                 taskQueue.Enqueue(task);
             }
-
-            return CodeTimer.TimeAsync(nameof(ConcurrenceRegisterTest), 1, async () =>
+            // 预热
+            await RegisterUserAsync(0).ConfigureAwait(false);
+            await CodeTimer.TimeAsync(nameof(ConcurrenceRegisterTest), 1, async () =>
             {
                 // Start 100 tasks
-                for (int i = 0; i < 10; i++)
+                for (var i = 0; i < 10; i++)
                 {
                     if (taskQueue.TryDequeue(out var task))
                     {
@@ -185,61 +286,6 @@ namespace Demo.Tests
                 await Task.WhenAll(tasks);
                 _output.WriteLine($"{failedList.Count} failed in {total}");
             });
-
-        }
-
-
-        [Fact]
-        public async Task ConcurrenceLoginTestByHttpClient()
-        {
-            LoginRequest[] loginRequests;
-            var total = 10000;
-            // get users info
-            using (var scope = IoCFactory.Instance.CurrentContainer.CreateChildContainer())
-            {
-                var repository = scope.Resolve<IDemoRepository>();
-                loginRequests = await repository.FindAll<Account>()
-                                        .OrderBy(a => a.Id)
-                                        .Take(total)
-                                        .Select(a => new Models.LoginRequest{
-                                            UserName = a.UserName,
-                                            Password = a.Password})
-                                        .ToArrayAsync()
-                                        .ConfigureAwait(false);
-            }
-
-            await CodeTimer.TimeAsync(nameof(ConcurrenceLoginTestByHttpClient), 1, async () =>
-            {
-                var tasks = new List<Task>();
-                var failedList = new ConcurrentBag<int>();
-                for (var i = 0; i < loginRequests.Length; i++)
-                {
-                    tasks.Add(LoginUserByHttpClientAsync(loginRequests[i], i, failedList));
-                }
-                await Task.WhenAll(tasks);
-                _output.WriteLine($"{failedList.Count} failed in {total}");
-            });
-
-        }
-
-        private async Task LoginUserByHttpClientAsync(Models.LoginRequest loginRequest, int step, ConcurrentBag<int> failedList)
-        {
-            try
-            {
-                using (var client = new TestsClient(new Uri("http://localhost:54395/")))
-                {
-                    client.HttpClient.Timeout = TimeSpan.FromSeconds(300);
-                    var result = await client.DemoOperations.LoginAsync(loginRequest);
-                    if (!result?.Success ?? false)
-                    {
-                        failedList.Add(step);
-                    }
-                }
-            }
-            catch (Exception)
-            {
-                failedList.Add(step);
-            }
         }
 
         [Fact]
@@ -252,7 +298,7 @@ namespace Demo.Tests
                     using (var scope = IoCFactory.Instance.CurrentContainer.CreateChildContainer())
                     {
                         var userAppService = scope.Resolve<UserAppService>();
-                        await userAppService.RegisterUsersAsync(GetRegisterUsersRequests(10));
+                        await userAppService.RegisterUsersAsync(GetRegisterUserRequests(10));
                     }
                 }
             });
