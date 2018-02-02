@@ -28,33 +28,33 @@ namespace Demo.Application.ApplicationServices
             _lockProvider = lockProvider;
         }
 
-        public Task RegisterUserAsync(RegisterUserRequest request)
+        public async Task RegisterUserAsync(RegisterUserRequest request)
         {
-            return _lockProvider.LockAsync(request.UserName,
-                                           async () =>
-                                           {
-                                               try
-                                               {
-                                                   var user = await _userDomainService.RegisterUserAsync(request.UserName,
-                                                                                                         request.Password)
-                                                                                      .ConfigureAwait(false);
-                                                   await CommitAsync(user.GetInfo()).ConfigureAwait(false);
-                                               }
-                                               catch (Exception e)
-                                               {
-                                                   if (e.GetBaseException() is SqlException sqlException)
-                                                   {
-                                                       // Cannot insert duplicate key row in object '%.*ls' with unique index '%.*ls'.
-                                                       if (sqlException.Number == 2601)
-                                                       {
-                                                           throw new DomainException(Error.UserNameAlreadyExists,
-                                                                                     new object[] {request.UserName});
-                                                       }
-                                                   }
-                                                   throw;
-                                               }
-                                           },
-                                           LockTimeOut);
+            //return _lockProvider.LockAsync(request.UserName,
+            //async () =>
+            //{
+            try
+            {
+                var user = await _userDomainService.RegisterUserAsync(request.UserName,
+                                                                      request.Password)
+                                                   .ConfigureAwait(false);
+                await CommitAsync(user.GetInfo()).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                if (e.GetBaseException() is SqlException sqlException)
+                {
+                    // Cannot insert duplicate key row in object '%.*ls' with unique index '%.*ls'.
+                    if (sqlException.Number == 2601)
+                    {
+                        throw new DomainException(Error.UserNameAlreadyExists,
+                                                  new object[] {request.UserName});
+                    }
+                }
+                throw;
+            }
+            //                          },
+            //                           LockTimeOut);
         }
 
         public async Task RegisterUsersAsync(IEnumerable<RegisterUserRequest> requests)

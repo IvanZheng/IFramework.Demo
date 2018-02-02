@@ -56,11 +56,11 @@ namespace Demo.Tests
             container.RegisterType<IEncryptService, EncryptService>(lifetime);
         }
 
-        private IEnumerable<RegisterUserRequest> GetRegisterUsersRequest()
+        private IEnumerable<RegisterUserRequest> GetRegisterUsersRequests(int count)
         {
             var ticks = DateTime.Now.Ticks;
             var step = 0;
-            for (var i = 0; i < 10; i++)
+            for (var i = 0; i < count; i++)
             {
                 yield return new RegisterUserRequest
                 {
@@ -70,17 +70,22 @@ namespace Demo.Tests
             }
         }
 
-        private async Task RegisterUserAsync(int step)
+        private async Task RegisterUserAsync(RegisterUserRequest request)
         {
             using (var scope = IoCFactory.Instance.CurrentContainer.CreateChildContainer())
             {
                 var userAppService = scope.Resolve<UserAppService>();
-                await userAppService.RegisterUserAsync(new RegisterUserRequest
-                {
-                    UserName = $"Test{DateTime.Now.Ticks}{step}",
-                    Password = "111111"
-                });
+                await userAppService.RegisterUserAsync(request);
             }
+        }
+
+        private Task RegisterUserAsync(int step)
+        {
+            return RegisterUserAsync(new RegisterUserRequest
+            {
+                UserName = $"Test{DateTime.Now.Ticks}{step}",
+                Password = "111111"
+            });
         }
 
         private async Task RegisterUserByHttpClientAsync(int step, ConcurrentBag<int> failedList)
@@ -122,7 +127,7 @@ namespace Demo.Tests
             return CodeTimer.TimeAsync(nameof(ConcurrenceLoginTest), 1, async () =>
             {
                 var tasks = new List<Task>();
-                for (var i = 0; i < 10000; i++)
+                for (var i = 0; i < 20000; i++)
                 {
                     tasks.Add(LoginUserAsync("string", "string"));
                 }
@@ -133,13 +138,32 @@ namespace Demo.Tests
         [Fact]
         public Task ConcurrenceRegisterTest()
         {
+            var registerUserRequets = GetRegisterUsersRequests(40000).ToArray();
+            var tasks = new List<Task>();
+            var taskQueue = new ConcurrentQueue<Task>();
+            foreach (RegisterUserRequest request in registerUserRequets)
+            {
+                var task = new Task(async () =>
+                {
+                    await RegisterUserAsync(request).ConfigureAwait(false);
+                    if (taskQueue.TryDequeue(out var next))
+                    {
+                        next.Start();
+                    }
+                });
+                tasks.Add(task);
+                taskQueue.Enqueue(task);
+            }
+
             return CodeTimer.TimeAsync(nameof(ConcurrenceRegisterTest), 1, async () =>
             {
-                var step = 0;
-                var tasks = new List<Task>();
-                for (var i = 0; i < 10000; i++)
+                // Start 100 tasks
+                for (int i = 0; i < 10; i++)
                 {
-                    tasks.Add(RegisterUserAsync(step++));
+                    if (taskQueue.TryDequeue(out var task))
+                    {
+                        task.Start();
+                    }
                 }
                 await Task.WhenAll(tasks);
             });
@@ -228,7 +252,7 @@ namespace Demo.Tests
                     using (var scope = IoCFactory.Instance.CurrentContainer.CreateChildContainer())
                     {
                         var userAppService = scope.Resolve<UserAppService>();
-                        await userAppService.RegisterUsersAsync(GetRegisterUsersRequest());
+                        await userAppService.RegisterUsersAsync(GetRegisterUsersRequests(10));
                     }
                 }
             });

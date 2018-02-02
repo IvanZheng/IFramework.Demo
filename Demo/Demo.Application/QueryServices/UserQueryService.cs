@@ -42,13 +42,16 @@ namespace Demo.Application.QueryServices
 
         private async Task<VM.ApplicationUser> FindUserByInternalAccountAsync(AccountSpec accountSpec)
         {
-            var userQuery = from account in Repository.FindAll(accountSpec)
-                            join u in Repository.FindAll<User>()
-                                on account.UserId equals u.Id
-                            select new { u, account };
-            var userAccount = await userQuery.FirstOrDefaultAsync()
-                                             .ConfigureAwait(false);
-            return userAccount?.u.ToVm(userAccount.account);
+            var account = await Repository.FindAsync(accountSpec)
+                                          .ConfigureAwait(false);
+            return new VM.ApplicationUser(account.UserId, account.UserName, account.Id, account.AccountType, true, null);
+            //var userQuery = from account in Repository.FindAll(accountSpec)
+            //                join u in Repository.FindAll<User>()
+            //                    on account.UserId equals u.Id
+            //                select new { u, account };
+            //var userAccount = await userQuery.FirstOrDefaultAsync()
+            //                                 .ConfigureAwait(false);
+            //return userAccount?.u.ToVm(userAccount.account);
         }
 
         public async Task<VM.ApplicationUser> ValidateUserLoginAsync(string userName, string password)

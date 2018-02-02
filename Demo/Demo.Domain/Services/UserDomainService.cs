@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Demo.Domain.Models.Accounts;
 using Demo.Domain.Models.Users;
 using Demo.Domain.Repositories;
+using Demo.DTO.Enums;
 using IFramework.Exceptions;
 using IFramework.Infrastructure;
 
@@ -30,7 +32,7 @@ namespace Demo.Domain.Services
                 throw new ArgumentException("Value cannot be null or whitespace.", nameof(password));
             }
 
-            var userExists = await _repository.ExistsAsync(new UserNameSpec(userName))
+            var userExists = await _repository.ExistsAsync(new AccountExistsSpec(AccountType.Internal, userName))
                                               .ConfigureAwait(false);
             if (userExists)
             {
@@ -42,9 +44,9 @@ namespace Demo.Domain.Services
         public User RegisterUser(string userName, string password)
         {
             var user = new User(userName);
-            password = _encryptService.EncryptPassword(password);
+            //password = _encryptService.EncryptPassword(password);
             var account = user.CreateAccount(password);
-            _repository.Add(user);
+            //_repository.Add(user);
             _repository.Add(account);
             return user;
         }

@@ -45,6 +45,7 @@
   <ItemGroup>
     <Compile Include="Error.cs" />
     <Compile Include="Models\Accounts\Account.cs" />
+    <Compile Include="Models\Accounts\AccountExistsSpec.cs" />
     <Compile Include="Models\Accounts\AccountSpec.cs" />
     <Compile Include="Models\AggregateRoot.cs" />
     <Compile Include="Models\Entity.cs" />
