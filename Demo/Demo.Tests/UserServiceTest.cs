@@ -168,7 +168,7 @@ namespace Demo.Tests
         [Fact]
         public async Task ConcurrenceLoginTest()
         {
-            var loginRequests = await GetLoginUserRequests(40000).ConfigureAwait(false);
+            var loginRequests = await GetLoginUserRequests(50000).ConfigureAwait(false);
             var tasks = new List<Task>();
             var taskQueue = new ConcurrentQueue<Task>();
             foreach (var request in loginRequests)
@@ -196,6 +196,27 @@ namespace Demo.Tests
                         task.Start();
                     }
                 }
+                await Task.WhenAll(tasks);
+            });
+        }
+        [Fact]
+        public async Task ConcurrenceLoginTest2()
+        {
+            var loginRequests = await GetLoginUserRequests(50000).ConfigureAwait(false);
+            var items = new ConcurrentQueue<LoginRequest>(loginRequests);
+          
+            // 预热
+            await LoginUserAsync("string", "string").ConfigureAwait(false);
+
+            await CodeTimer.TimeAsync(nameof(ConcurrenceLoginTest), 1, async () =>
+            {
+                var tasks = new object[10].Select(el => Task.Run(async () =>
+                {
+                    while (items.TryDequeue(out var request))
+                    {
+                        await LoginUserAsync(request).ConfigureAwait(false);
+                    }
+                }));
                 await Task.WhenAll(tasks);
             });
         }
