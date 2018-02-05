@@ -42,6 +42,9 @@
     <Reference Include="IFramework.EntityFramework, Version=1.0.0.3, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\..\packages\IFramework.EntityFramework.1.0.6\lib\net451\IFramework.EntityFramework.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.AspNet.Identity.Core, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Microsoft.AspNet.Identity.Core.2.2.1\lib\net45\Microsoft.AspNet.Identity.Core.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Core" />
@@ -68,6 +71,10 @@
     <ProjectReference Include="..\Demo.Domain\Demo.Domain.csproj">
       <Project>{DF9A8EE1-3151-42F5-8CF0-8BBF3AD73219}</Project>
       <Name>Demo.Domain</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Demo.Persistence\Demo.Persistence.csproj">
+      <Project>{34715B3F-BD89-4992-B1CD-F38221EEB965}</Project>
+      <Name>Demo.Persistence</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

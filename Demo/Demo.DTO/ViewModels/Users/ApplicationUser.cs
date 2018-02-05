@@ -9,6 +9,10 @@ namespace Demo.DTO.ViewModels.Users
     /// </summary>
     public class ApplicationUser : IUser
     {
+        public ApplicationUser()
+        {
+            
+        }
         public ApplicationUser(string id, string userName, string accountId, AccountType accountType, bool enabled, string userToken)
         {
             AccountType = accountType;
@@ -22,7 +26,7 @@ namespace Demo.DTO.ViewModels.Users
         /// <summary>
         ///     帐号类型
         /// </summary>
-        public AccountType AccountType { get; protected set; }
+        public AccountType AccountType { get; set; }
 
         /// <summary>
         ///     第三方 UserToken
@@ -32,7 +36,7 @@ namespace Demo.DTO.ViewModels.Users
         /// <summary>
         ///     当前登陆了帐号标识
         /// </summary>
-        public string AccountId { get; protected set; }
+        public string AccountId { get;  set; }
 
         /// <summary>
         ///     用户是否可用
@@ -42,7 +46,7 @@ namespace Demo.DTO.ViewModels.Users
         /// <summary>
         ///     User.Id
         /// </summary>
-        public string Id { get; protected set; }
+        public string Id { get; set; }
 
         /// <summary>
         ///     User.Name

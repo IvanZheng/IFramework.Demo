@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data.Entity;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Demo.Application.ApplicationServices;
@@ -116,13 +117,53 @@ namespace Demo.Tests
         {
             return LoginUserAsync(request.UserName, request.Password);
         }
-
+        private async Task LoginUserWithResultAsync(string userName, string password)
+        {
+            using (var scope = IoCFactory.Instance.CurrentContainer.CreateChildContainer())
+            {
+                try
+                {
+                    var userQueryService = scope.Resolve<UserQueryService>();
+                    await userQueryService.ValidateUserLoginResultAsync(userName, password);
+                }
+                catch
+                {
+                    // ignored
+                }
+            }
+        }
         private async Task LoginUserAsync(string userName, string password)
         {
             using (var scope = IoCFactory.Instance.CurrentContainer.CreateChildContainer())
             {
-                var userQueryService = scope.Resolve<UserQueryService>();
-                await userQueryService.ValidateUserLoginAsync(userName, password);
+                try
+                {
+                    var userQueryService = scope.Resolve<UserQueryService>();
+                    await userQueryService.ValidateUserLoginAsync(userName, password);
+                }
+                catch
+                {
+                    // ignored
+                }
+            }
+        }
+
+        private async Task<LoginRequest[]> GetLoginUserWrongRequests(int total)
+        {
+            // get users info
+            using (var scope = IoCFactory.Instance.CurrentContainer.CreateChildContainer())
+            {
+                var repository = scope.Resolve<IDemoRepository>();
+                return await repository.FindAll<Account>()
+                                       .OrderBy(a => a.Id)
+                                       .Take(total)
+                                       .Select(a => new LoginRequest
+                                       {
+                                           UserName = a.UserName,
+                                           Password = a.Id
+                                       })
+                                       .ToArrayAsync()
+                                       .ConfigureAwait(false);
             }
         }
 
@@ -188,7 +229,7 @@ namespace Demo.Tests
             await LoginUserAsync("string", "string").ConfigureAwait(false);
             await CodeTimer.TimeAsync(nameof(ConcurrenceLoginTest), 1, async () =>
             {
-                // Start 100 tasks
+                // Start 10 tasks
                 for (var i = 0; i < 10; i++)
                 {
                     if (taskQueue.TryDequeue(out var task))
@@ -199,6 +240,45 @@ namespace Demo.Tests
                 await Task.WhenAll(tasks);
             });
         }
+
+
+
+        [Fact]
+        public async Task ConcurrenceLoginFailedTest()
+        {
+            var loginRequests = await GetLoginUserWrongRequests(50000).ConfigureAwait(false);
+            var tasks = new List<Task>();
+            var taskQueue = new ConcurrentQueue<Task>();
+            foreach (var request in loginRequests)
+            {
+                var task = new Task(async () =>
+                {
+                    //await LoginUserWithResultAsync(request.UserName, request.Password).ConfigureAwait(false);
+                    await LoginUserAsync(request).ConfigureAwait(false);
+                    if (taskQueue.TryDequeue(out var next))
+                    {
+                        next.Start();
+                    }
+                });
+                tasks.Add(task);
+                taskQueue.Enqueue(task);
+            }
+            // 预热
+            await LoginUserAsync("string", "string").ConfigureAwait(false);
+            await CodeTimer.TimeAsync(nameof(ConcurrenceLoginFailedTest), 1, async () =>
+            {
+                // Start 10 tasks
+                for (var i = 0; i < 10; i++)
+                {
+                    if (taskQueue.TryDequeue(out var task))
+                    {
+                        task.Start();
+                    }
+                }
+                await Task.WhenAll(tasks);
+            });
+        }
+
         [Fact]
         public async Task ConcurrenceLoginTest2()
         {
@@ -224,7 +304,7 @@ namespace Demo.Tests
         [Fact]
         public async Task ConcurrenceRegisterTest()
         {
-            var registerUserRequets = GetRegisterUserRequests(40000).ToArray();
+            var registerUserRequets = GetRegisterUserRequests(50000).ToArray();
             var tasks = new List<Task>();
             var taskQueue = new ConcurrentQueue<Task>();
             foreach (var request in registerUserRequets)
