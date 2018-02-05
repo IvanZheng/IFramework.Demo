@@ -160,7 +160,7 @@ namespace Demo.Tests
                                        .Select(a => new LoginRequest
                                        {
                                            UserName = a.UserName,
-                                           Password = a.Id
+                                           Password = a.UserName
                                        })
                                        .ToArrayAsync()
                                        .ConfigureAwait(false);
@@ -240,8 +240,6 @@ namespace Demo.Tests
                 await Task.WhenAll(tasks);
             });
         }
-
-
 
         [Fact]
         public async Task ConcurrenceLoginFailedTest()
@@ -398,7 +396,7 @@ namespace Demo.Tests
                     using (var scope = IoCFactory.Instance.CurrentContainer.CreateChildContainer())
                     {
                         var userAppService = scope.Resolve<UserAppService>();
-                        await userAppService.RegisterUsersAsync(GetRegisterUserRequests(10));
+                        await userAppService.RegisterUsersBatchAsync(GetRegisterUserRequests(10));
                     }
                 }
             });
@@ -408,7 +406,7 @@ namespace Demo.Tests
         public Task TestLoginUserAsync()
         {
             return CodeTimer.TimeAsync(nameof(TestLoginUserAsync),
-                                       10000,
+                                       1,
                                        () => LoginUserAsync("string", "string"));
         }
 
@@ -417,7 +415,7 @@ namespace Demo.Tests
         {
             var step = 0;
             return CodeTimer.TimeAsync(nameof(TestRegisterUserAsync),
-                                       10000,
+                                       1,
                                        () => RegisterUserAsync(step++));
         }
     }

@@ -35,7 +35,10 @@ namespace Demo.Application.ApplicationServices
                                           {
                                               try
                                               {
-                                                  var user = await _userDomainService.RegisterUserAsync(request.UserName,
+                                                  var accountId = await Repository.GetNextSequenceAsync("DbSequence")
+                                                                                  .ConfigureAwait(false);
+                                                  var user = await _userDomainService.RegisterUserAsync(accountId,
+                                                                                                        request.UserName,
                                                                                                         request.Password)
                                                                                      .ConfigureAwait(false);
                                                   await CommitAsync(user.GetInfo()).ConfigureAwait(false);
@@ -58,13 +61,15 @@ namespace Demo.Application.ApplicationServices
                                .ConfigureAwait(false);
         }
 
-        public async Task RegisterUsersAsync(IEnumerable<RegisterUserRequest> requests)
+        public async Task RegisterUsersBatchAsync(IEnumerable<RegisterUserRequest> requests)
         {
             foreach (var request in requests)
             {
                 try
                 {
-                    _userDomainService.RegisterUser(request.UserName, request.Password);
+                    var accountId = await Repository.GetNextSequenceAsync("DbSequence")
+                                                    .ConfigureAwait(false);
+                    _userDomainService.RegisterUser(accountId, request.UserName, request.Password);
                 }
                 catch (Exception e)
                 {

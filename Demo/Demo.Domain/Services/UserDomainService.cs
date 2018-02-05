@@ -21,7 +21,7 @@ namespace Demo.Domain.Services
             _encryptService = encryptService;
         }
 
-        public async Task<User> RegisterUserAsync(string userName, string password)
+        public async Task<User> RegisterUserAsync(long accountId, string userName, string password)
         {
             if (string.IsNullOrWhiteSpace(userName))
             {
@@ -38,14 +38,14 @@ namespace Demo.Domain.Services
             {
                 throw new DomainException(Error.UserNameAlreadyExists, new object[] {userName});
             }
-            return RegisterUser(userName, password);
+            return RegisterUser(accountId, userName, password);
         }
 
-        public User RegisterUser(string userName, string password)
+        public User RegisterUser(long id, string userName, string password)
         {
             var user = new User(userName);
             //password = _encryptService.EncryptPassword(password);
-            var account = user.CreateAccount(password);
+            var account = user.CreateAccount(id, password);
             //_repository.Add(user);
             _repository.Add(account);
             return user;

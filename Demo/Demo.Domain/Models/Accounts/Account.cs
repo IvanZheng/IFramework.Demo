@@ -20,10 +20,11 @@ namespace Demo.Domain.Models.Accounts
         /// <summary>
         /// 用于应用内账号创建
         /// </summary>
+        /// <param name="id"></param>
         /// <param name="userId"></param>
         /// <param name="userName"></param>
         /// <param name="password"></param>
-        public Account(string userId, string userName, string password)
+        public Account(long id, string userId, string userName, string password)
         {
             if (string.IsNullOrWhiteSpace(userName))
             {
@@ -33,10 +34,10 @@ namespace Demo.Domain.Models.Accounts
             {
                 throw new ArgumentException("Value cannot be null or whitespace.", nameof(password));
             }
+            Id = id;
             UserName = userName;
             Password = password;
             UserId = userId ?? throw new ArgumentNullException(nameof(userId));
-            Id = ObjectId.GenerateNewId().ToString();
             AccountType = AccountType.Internal;
             Status = CommonStatus.Normal;
         }
@@ -44,11 +45,12 @@ namespace Demo.Domain.Models.Accounts
         /// <summary>
         /// 用于第三方,入微信认证登陆
         /// </summary>
+        /// <param name="id"></param>
         /// <param name="userId"></param>
         /// <param name="outerId"></param>
-        public Account(string userId, string outerId)
+        public Account(long id, string userId, string outerId)
         {
-            Id = ObjectId.GenerateNewId().ToString();
+            Id = id;
             UserId = userId ?? throw new ArgumentNullException(nameof(userId));
             UserName = outerId;
             AccountType = AccountType.ThirdParties;
@@ -58,7 +60,7 @@ namespace Demo.Domain.Models.Accounts
         /// <summary>
         ///     帐号标识
         /// </summary>
-        public string Id { get; protected set; }
+        public long Id { get; protected set; }
 
         /// <summary>
         ///     用户标识

@@ -54,7 +54,7 @@ namespace Demo.Portal.ApiControllers
                 ApplicationUser applicationUser = await UserManager.ValidateUserLoginAsync(request.UserName, request.Password);
                 AuthenticationManager.SignOut(DefaultAuthenticationTypes.ApplicationCookie);
                 var identity = await UserManager.CreateIdentityAsync(applicationUser, DefaultAuthenticationTypes.ApplicationCookie);
-                identity.AddClaim(new Claim(ApplicationUserManager.ClaimsUserKey, applicationUser.AccountId));
+                identity.AddClaim(new Claim(ApplicationUserManager.ClaimsUserKey, applicationUser.AccountId.ToString()));
                 AuthenticationManager.SignIn(new AuthenticationProperties { IsPersistent = false }, identity);
             });
         }

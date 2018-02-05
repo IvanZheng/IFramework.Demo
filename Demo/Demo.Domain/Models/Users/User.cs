@@ -56,9 +56,9 @@ namespace Demo.Domain.Models.Users
         public string Contact { get; protected set; }
         public bool Enabled => Status == CommonStatus.Normal;
 
-        public Account CreateAccount(string password)
+        public Account CreateAccount(long accountId, string password)
         {
-            return new Account(Id, Name, password);
+            return new Account(accountId, Id, Name, password);
         }
 
         public UserInfo GetInfo()

@@ -9,5 +9,6 @@ namespace Demo.Domain.Repositories
     {
         Task<Account> GetAccountAsync(string accountId, bool throwExceptionIfNotExists = false);
         Task<User> GetUserAsync(string userId, bool throwExceptionIfNotExists = false);
+        Task<long> GetNextSequenceAsync(string dbsequence);
     }
 }

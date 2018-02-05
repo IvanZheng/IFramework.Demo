@@ -13,7 +13,7 @@ namespace Demo.DTO.ViewModels.Users
         {
             
         }
-        public ApplicationUser(string id, string userName, string accountId, AccountType accountType, bool enabled, string userToken)
+        public ApplicationUser(string id, string userName, long accountId, AccountType accountType, bool enabled, string userToken)
         {
             AccountType = accountType;
             Enabled = enabled;
@@ -36,7 +36,7 @@ namespace Demo.DTO.ViewModels.Users
         /// <summary>
         ///     当前登陆了帐号标识
         /// </summary>
-        public string AccountId { get;  set; }
+        public long AccountId { get;  set; }
 
         /// <summary>
         ///     用户是否可用

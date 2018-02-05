@@ -14,9 +14,9 @@ namespace Demo.Domain.Models.Accounts
         public string UserName { get; protected set; }
         public string Password { get; protected set; }
 
-        public string AccountId { get; protected set; }
+        public long AccountId { get; protected set; }
 
-        public AccountSpec(string accountId)
+        public AccountSpec(long accountId)
         {
             AccountId = accountId;
         }
@@ -29,7 +29,7 @@ namespace Demo.Domain.Models.Accounts
 
         public override Expression<Func<Account, bool>> GetExpression()
         {
-            if (string.IsNullOrWhiteSpace(AccountId))
+            if (AccountId == 0)
             {
                 return a => a.AccountType == AccountType.Internal && a.UserName == UserName && a.Password == Password;
             }

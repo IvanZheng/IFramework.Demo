@@ -39,7 +39,7 @@ namespace Demo.Application.QueryServices
             return FindUserByInternalAccountAsync(new AccountSpec(userName, password));
         }
 
-        public Task<VM.ApplicationUser> FindUserByAccountIdAsync(string accountId)
+        public Task<VM.ApplicationUser> FindUserByAccountIdAsync(long accountId)
         {
             return FindUserByInternalAccountAsync(new AccountSpec(accountId));
         }
@@ -103,7 +103,7 @@ namespace Demo.Application.QueryServices
                 {
                     return new VM.ApplicationUser((string) result["UserId"],
                                                   (string) result["UserName"],
-                                                  (string) result["Id"],
+                                                  (long) result["Id"],
                                                   AccountType.Internal,
                                                   true,
                                                   (string) result["UserName"]);

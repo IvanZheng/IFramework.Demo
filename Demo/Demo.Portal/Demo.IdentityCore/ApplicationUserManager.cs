@@ -31,9 +31,9 @@ namespace Demo.IdentityCore
             var accountId = (user.Identity as ClaimsIdentity)?.Claims
                                                              .FirstOrDefault(c => c.Type == ClaimsUserKey)
                                                              ?.Value;
-            if (!string.IsNullOrWhiteSpace(accountId))
+            if (long.TryParse(accountId, out var longId))
             {
-                appUser = await _userQueryService.FindUserByAccountIdAsync(accountId)
+                appUser = await _userQueryService.FindUserByAccountIdAsync(longId)
                                                  .ConfigureAwait(false);
             }
             return appUser;
