@@ -241,8 +241,6 @@ namespace Demo.Tests
             });
         }
 
-
-
         [Fact]
         public async Task ConcurrenceLoginFailedTest()
         {
@@ -408,7 +406,7 @@ namespace Demo.Tests
         public Task TestLoginUserAsync()
         {
             return CodeTimer.TimeAsync(nameof(TestLoginUserAsync),
-                                       10000,
+                                       1,
                                        () => LoginUserAsync("string", "string"));
         }
 
@@ -417,7 +415,7 @@ namespace Demo.Tests
         {
             var step = 0;
             return CodeTimer.TimeAsync(nameof(TestRegisterUserAsync),
-                                       10000,
+                                       1,
                                        () => RegisterUserAsync(step++));
         }
     }
