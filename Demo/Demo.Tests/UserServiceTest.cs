@@ -117,14 +117,16 @@ namespace Demo.Tests
         {
             return LoginUserAsync(request.UserName, request.Password);
         }
-        private async Task LoginUserWithResultAsync(string userName, string password)
+        private async Task LoginUserWithoutExceptionAsync(string userName, string password)
         {
             using (var scope = IoCFactory.Instance.CurrentContainer.CreateChildContainer())
             {
+                Exception exception = null;
                 try
                 {
                     var userQueryService = scope.Resolve<UserQueryService>();
-                    await userQueryService.ValidateUserLoginResultAsync(userName, password);
+                    var result = await userQueryService.ValidateUserLoginWithoutExceptionAsync(userName, password);
+                    exception = result.Item2;
                 }
                 catch
                 {
@@ -139,7 +141,8 @@ namespace Demo.Tests
                 try
                 {
                     var userQueryService = scope.Resolve<UserQueryService>();
-                    await userQueryService.ValidateUserLoginAsync(userName, password);
+                    var user = await userQueryService.ValidateUserLoginAsync(userName, password);
+                    var success = user != null;
                 }
                 catch
                 {
@@ -162,6 +165,21 @@ namespace Demo.Tests
                                            UserName = a.UserName,
                                            Password = a.Id
                                        })
+                                       .ToArrayAsync()
+                                       .ConfigureAwait(false);
+            }
+        }
+
+        private async Task<string[]> GetUesrIds(int total)
+        {
+            // get users info
+            using (var scope = IoCFactory.Instance.CurrentContainer.CreateChildContainer())
+            {
+                var repository = scope.Resolve<IDemoRepository>();
+                return await repository.FindAll<Account>()
+                                       .OrderBy(a => a.Id)
+                                       .Take(total)
+                                       .Select(a => a.Id)
                                        .ToArrayAsync()
                                        .ConfigureAwait(false);
             }
@@ -207,6 +225,60 @@ namespace Demo.Tests
         }
 
         [Fact]
+        public async Task ConcurrenceGetUsersByIdTest()
+        {
+            var userIds = await GetUesrIds(50000).ConfigureAwait(false);
+            var tasks = new List<Task>();
+            var taskQueue = new ConcurrentQueue<Task>();
+            foreach (var userId in userIds)
+            {
+                var task = new Task(async () =>
+                {
+                    await GetUserAsync(userId).ConfigureAwait(false);
+                    if (taskQueue.TryDequeue(out var next))
+                    {
+                        next.Start();
+                    }
+                });
+                tasks.Add(task);
+                taskQueue.Enqueue(task);
+            }
+            // 预热
+            await GetUserAsync("string").ConfigureAwait(false);
+            await CodeTimer.TimeAsync(nameof(ConcurrenceLoginTest), 1, async () =>
+            {
+                // Start 10 tasks
+                for (var i = 0; i < 10; i++)
+                {
+                    if (taskQueue.TryDequeue(out var task))
+                    {
+                        task.Start();
+                    }
+                }
+                await Task.WhenAll(tasks);
+            });
+        }
+
+        private async Task GetUserAsync(string userId)
+        {
+            using (var scope = IoCFactory.Instance.CurrentContainer.CreateChildContainer())
+            {
+                try
+                {
+                    var userQueryService = scope.Resolve<UserQueryService>();
+                    var user = await userQueryService.FindUserByAccountIdAsync(userId)
+                                                     .ConfigureAwait(false);
+                    var success = user != null;
+                }
+                catch
+                {
+                    // ignored
+                }
+            }
+        }
+
+
+        [Fact]
         public async Task ConcurrenceLoginTest()
         {
             var loginRequests = await GetLoginUserRequests(50000).ConfigureAwait(false);
@@ -216,7 +288,7 @@ namespace Demo.Tests
             {
                 var task = new Task(async () =>
                 {
-                    await LoginUserAsync(request).ConfigureAwait(false);
+                    await LoginUserAsync(request.UserName, request.Password).ConfigureAwait(false);
                     if (taskQueue.TryDequeue(out var next))
                     {
                         next.Start();
@@ -251,8 +323,7 @@ namespace Demo.Tests
             {
                 var task = new Task(async () =>
                 {
-                    //await LoginUserWithResultAsync(request.UserName, request.Password).ConfigureAwait(false);
-                    await LoginUserAsync(request).ConfigureAwait(false);
+                    await LoginUserAsync(request.UserName, request.Password).ConfigureAwait(false);
                     if (taskQueue.TryDequeue(out var next))
                     {
                         next.Start();
@@ -264,6 +335,41 @@ namespace Demo.Tests
             // 预热
             await LoginUserAsync("string", "string").ConfigureAwait(false);
             await CodeTimer.TimeAsync(nameof(ConcurrenceLoginFailedTest), 1, async () =>
+            {
+                // Start 10 tasks
+                for (var i = 0; i < 10; i++)
+                {
+                    if (taskQueue.TryDequeue(out var task))
+                    {
+                        task.Start();
+                    }
+                }
+                await Task.WhenAll(tasks);
+            });
+        }
+
+        [Fact]
+        public async Task ConcurrenceLoginFailedWithoutExceptionTest()
+        {
+            var loginRequests = await GetLoginUserWrongRequests(50000).ConfigureAwait(false);
+            var tasks = new List<Task>();
+            var taskQueue = new ConcurrentQueue<Task>();
+            foreach (var request in loginRequests)
+            {
+                var task = new Task(async () =>
+                {
+                    await LoginUserWithoutExceptionAsync(request.UserName, request.Password).ConfigureAwait(false);
+                    if (taskQueue.TryDequeue(out var next))
+                    {
+                        next.Start();
+                    }
+                });
+                tasks.Add(task);
+                taskQueue.Enqueue(task);
+            }
+            // 预热
+            await LoginUserWithoutExceptionAsync("string", "string").ConfigureAwait(false);
+            await CodeTimer.TimeAsync(nameof(ConcurrenceLoginFailedWithoutExceptionTest), 1, async () =>
             {
                 // Start 10 tasks
                 for (var i = 0; i < 10; i++)

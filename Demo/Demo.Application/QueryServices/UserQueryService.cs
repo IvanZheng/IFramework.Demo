@@ -130,15 +130,26 @@ namespace Demo.Application.QueryServices
             return user;
         }
 
-        public async Task<VM.ApplicationUser> ValidateUserLoginResultAsync(string userName, string password)
+        public async Task<Tuple<VM.ApplicationUser, DomainException>> ValidateUserLoginWithoutExceptionAsync(string userName, string password)
         {
+            DomainException exception = null;
             if (string.IsNullOrWhiteSpace(password))
             {
                 throw new ArgumentException("Value cannot be null or whitespace.", nameof(password));
             }
             var user = await FindUserByInternalAccountAsync(userName, password).ConfigureAwait(false);
-            
-            return user;
+            if (user == null)
+            {
+                exception = new DomainException(Error.WrongUserNameOrPassword);
+            }
+            else
+            {
+                if (!user.Enabled)
+                {
+                    exception = new DomainException(Error.UserUnavailable);
+                }
+            }
+            return new Tuple<VM.ApplicationUser, DomainException>(user, exception);
         }
     }
 }
